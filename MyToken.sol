@@ -1,41 +1,34 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.3;
 
-contract MyToken {
-    mapping (address => uint256) private _balances;
-    uint256 private _totalSupply;
-    string private _name;
-    string private _symbol;
+pragma solidity 0.8.15;
 
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MyToken is ERC20, Ownable {
+
+    uint256 public rate;
+
+    event Buy(address indexed buyer, uint256 amount);
+    event Withdraw(address indexed owner, uint256 amount);
+        
+    constructor() ERC20("Test Token", "TT") {
+        rate = 100;
     }
 
-    function name() public view returns (string memory) {
-        return _name;
+    function buy() external payable {
+        require(msg.value > 0);
+        uint256 amount = msg.value * rate;
+        _mint(msg.sender, amount);
+        emit Buy(msg.sender, amount);
     }
 
-    function symbol() public view returns (string memory) {
-        return _symbol;
-    }
 
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
-    }
-
-    function mint(address to, uint256 amount) public {
-        _totalSupply += amount;
-        _balances[to] += amount;
-    }
-
-    function transfer(address to, uint256 amount) public {
-        require(_balances[msg.sender] >= amount, "Insufficient balance.");
-        _balances[msg.sender] -= amount;
-        _balances[to] += amount;
+    // Owner withdraw fund from token sale
+    function withdraw() external onlyOwner {
+        uint256 amount = address(this).balance;
+        (bool status, ) = msg.sender.call{value:amount}("");
+        require(status);
+        emit Withdraw(msg.sender, amount);
     }
 }
